@@ -151,7 +151,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--out_data_path',
         # default='./4_22_geo_grid6_final/syn_5_pred_4/',
-        default='./5_26_b4_porto20/try/',
+        default='./5_26_b4_porto20/syn_9_pred_1/',
         type=str)
     parser.add_argument(
         '--cell_num',
