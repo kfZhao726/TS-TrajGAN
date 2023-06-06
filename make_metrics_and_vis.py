@@ -111,16 +111,13 @@ if __name__ == '__main__':
     #
     # ori_traj_txt_path = './data/porto20_b5/0_porto_grid20_b5_2w_.txt'
     ori_traj_txt_path = './data/porto_grid20_b4_2w.txt'
-    # syn_traj_txt_path = './data/porto20_b4/ttsgan/tts_b4_porto20_time_4.txt'
-    # syn_traj_txt_path = './data/porto20_b4/tts_new/tts_b4_porto20_time_4.txt'
-
-    syn_traj_txt_path = './5_26_b4_porto20/try/syn_data_output/formalized_txt_syn9_pred1_min1_max30_with_time.txt'
+    syn_traj_txt_path = './data/porto20_b4/ttsgan/tts_b4_porto20_time_4.txt'
     # syn_traj_txt_path = './data/porto20_b5/0_porto_grid20_b5_2w_.txt'
 
     do_metrics_and_vis(ori_traj_txt_path, syn_traj_txt_path,
                        max_seq_len=30,  # 30, 50
                        metric_iteration=10,
-                       out_data_path='./metrics_result/porto20_b4/3_ttsgan_new/'  # output path
+                       out_data_path='./metrics_result/porto20_b4/3_ttsgan/'  # output path
                        # 1_seqgan
                        # 2_timegan
                        # 3_tts_gan
