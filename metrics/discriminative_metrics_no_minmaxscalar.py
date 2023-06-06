@@ -7,15 +7,13 @@ warnings.filterwarnings("ignore")
 import os
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 import tensorflow.compat.v1 as tf
-tf.disable_eager_execution()
-# tf.compat.v1.disable_eager_execution()
 import numpy as np
 from sklearn.metrics import accuracy_score
 from utils import train_test_divide, extract_time, batch_generator, MinMaxScaler
 # from sklearn.preprocessing import MinMaxScaler
 
 
-def discriminative_score_metrics(ori_data, generated_data):
+def discriminative_score_metrics2(ori_data, generated_data):
     """Use post-hoc RNN to classify original data and synthetic data
 
     Args:
@@ -27,9 +25,6 @@ def discriminative_score_metrics(ori_data, generated_data):
     """
     # Initialization on the Graph
     tf.reset_default_graph()
-
-    # ori_data = MinMaxScaler(ori_data)[0]
-    # generated_data = MinMaxScaler(generated_data)[0]
     # Basic Parameters
     no, seq_len, dim = np.asarray(ori_data).shape
     # no = np.asarray(ori_data).shape[0]
