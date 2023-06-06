@@ -31,7 +31,9 @@ def main(args):
     """Main function for experiments.
 
     Args:
-      - seq_len: sequence length
+      - max_seq_len: max trajectory length
+      - cut_seq_len + 1: one stage begin trajectory length (default 9 + 1)
+      - pred_seq_len: two stage predicted trajectory length (default 1)
       - Network parameters (should be optimized for different datasets)
         - module: gru, lstm, or lstmLN
         - hidden_dim: hidden dimensions
