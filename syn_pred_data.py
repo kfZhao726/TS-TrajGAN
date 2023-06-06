@@ -60,7 +60,6 @@ def main(args):
     parameters['max_seq_len'] = args.max_seq_len
     parameters['cut_seq_len'] = args.cut_seq_len
     parameters['pred_seq_len'] = args.pred_seq_len
-    parameters['pred_traj_num'] = args.pred_traj_num
     data_output = args.out_data_path + 'syn_data_output/'
     pathlib.Path(data_output).mkdir(parents=True, exist_ok=True)
 
@@ -180,11 +179,6 @@ if __name__ == '__main__':
         '--pred_seq_len',
         help='initial predicted sequence length',
         default=1,
-        type=int)
-    parser.add_argument(
-        '--pred_traj_num',
-        help='initial predicted sequence num',
-        default=0,
         type=int)
     parser.add_argument(
         '--module',
