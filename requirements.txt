@@ -1,0 +1,6 @@
+cudatoolkit=11.2.0
+cudnn=8.1.0.77
+tensorflow-gpu==2.6.0
+protobuf==3.20.0
+numpy==1.19.5
+matplotlib==3.3.4

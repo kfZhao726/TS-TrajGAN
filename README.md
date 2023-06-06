@@ -1,4 +1,4 @@
-# Traj-syn-pred-demo
+#TS-TrajGAN
 
 A two-stage spatiotemporal trajectory generation model with GAN and conditional GAN
 
@@ -40,9 +40,9 @@ A two-stage spatiotemporal trajectory generation model with GAN and conditional 
 
 `run make_metrics_and_vis.py`
 
-`您需要在main函数下指定原始轨迹数据集和生成轨迹数据集的路径，以及评估结果的输出路径`
+`您需要在main函数下指定原始轨迹数据集和生成轨迹数据集(以with_time结尾的txt文件)的路径，以及评估结果的输出路径`
 
-`You need to specify the path of the original trajectory dataset and the generated trajectory dataset under the main function, as well as the output path of the evaluation results`
+`You need to specify the path of the original trajectory dataset 'ori_traj_txt_path' and the generated trajectory dataset 'syn_traj_txt_path' under the main function, as well as the output path of the evaluation results`
 
 `1-pca.png and 1-tsne.png are result of two stage generated data`
 
