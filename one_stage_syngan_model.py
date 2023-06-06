@@ -69,7 +69,6 @@ def syngan(ori_data, parameters):
 
     # Maximum sequence length and each sequence length
     max_seq_len = parameters['cut_seq_len'] + 1
-    pred_traj_num = parameters['pred_traj_num']
     dim = len(ori_data[0][0])
     z_dim = dim
 
