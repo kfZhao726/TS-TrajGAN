@@ -26,10 +26,7 @@ def discriminative_score_metrics2(ori_data, generated_data):
     # Initialization on the Graph
     tf.reset_default_graph()
     # Basic Parameters
-    no, seq_len, dim = np.asarray(ori_data).shape
-    # no = np.asarray(ori_data).shape[0]
-    # # seq_len is not sure
-    # dim = 3
+    no, seq_len, dim = np.asarray(ori_data).shap
 
     # Set maximum sequence length and each sequence length
     ori_time, ori_max_seq_len = extract_time(ori_data)
@@ -88,13 +85,10 @@ def discriminative_score_metrics2(ori_data, generated_data):
     ## Train the discriminator
     # Start session and initialize
     os.environ["CUDA_VISIBLE_DEVICES"] = '0'
-    config = tf.ConfigProto()  ##:如果你指定的设备不存在,允许TF自动分配设备
+    config = tf.ConfigProto()
     config.gpu_options.per_process_gpu_memory_fraction = 0.5
-    config.gpu_options.allow_growth = True  ##动态分配内存
+    config.gpu_options.allow_growth = True
     sess = tf.Session(config=config)
-    # print(device_lib.list_local_devices())
-    # print("*"*50)
-    # sess = tf.Session()
     sess.run(tf.global_variables_initializer())
 
     # Train/test division for both original and generated data

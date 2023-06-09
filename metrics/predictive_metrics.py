@@ -82,13 +82,10 @@ def predictive_score_metrics(ori_data, generated_data):
     ## Training
     # Session start
     os.environ["CUDA_VISIBLE_DEVICES"] = '0'
-    config = tf.ConfigProto()  ##:如果你指定的设备不存在,允许TF自动分配设备
+    config = tf.ConfigProto()
     config.gpu_options.per_process_gpu_memory_fraction = 0.5
-    config.gpu_options.allow_growth = True  ##动态分配内存
+    config.gpu_options.allow_growth = True
     sess = tf.Session(config=config)
-    # print(device_lib.list_local_devices())
-    # print("*"*50)
-    # sess = tf.Session()
     sess.run(tf.global_variables_initializer())
 
     # Training using Synthetic dataset
