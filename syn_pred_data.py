@@ -80,8 +80,6 @@ def main(args):
     # generated_data_length: (?, )
     to_end_generated_data, to_two_stage_generated_data, generated_data_length \
         = syngan(one_stage_train_data, parameters)
-    # print("generated_data's shape = " + str(np.array(generated_data).shape))
-    print("generated_data_length's shape = " + str(np.array(generated_data_length).shape))
 
     # co_name = ['lat', 'lng', 'time_float']
     # write_data2csv(np.expand_dims(np.expand_dims(generated_data_length, axis=1), axis=1), 1, co_name,
