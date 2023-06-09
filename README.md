@@ -21,7 +21,7 @@
 `./out_data_path/One_Stage_Model/`
 `./out_data_path/Two_Stage_Model/`
 
-### Generated datas under the directory 
+### Generated data under the directory 
 
 `./out_data_path/syn_data_output/`: 
 
