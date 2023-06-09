@@ -74,7 +74,7 @@ def main(args):
                                    pred_seq_len=args.pred_seq_len,
                                    max_seq_len=args.max_seq_len, boundary=args.boundary, with_end_sign=False, for_test=False)
 
-    print("1.1 Begin one stage to synthese data ")
+    print("1.1 Begin one stage to synthese initial trajectory segments ")
     # to_end_generated_data: (m, ?[len<=5], 3)
     # to_two_stage_generated_data: (n, cut_seq_len + 1[begin point], 3)
     # generated_data_length: (?, )
@@ -86,13 +86,13 @@ def main(args):
     # co_name = ['lat', 'lng', 'time_float']
     # write_data2csv(np.expand_dims(np.expand_dims(generated_data_length, axis=1), axis=1), 1, co_name,
     #                data_output + "pred_begin_trajectory_length.csv")
-    print("One Stage Data Syned Successfully")
+    print("One Stage initial trajectory segments Syned Successfully")
     print("----------------------------------------------")
-    print("2.1 Begin to predict data ")
+    print("2.1 Begin to predict trajectory ")
 
     predicted_data_m = predgan(two_stage_train_data, to_two_stage_generated_data, generated_data_length, parameters)
 
-    print("Data Predicted Successfully")
+    print("Trajectory Predicted Successfully")
 
     result_traj = []
     result_traj_with_time = []
@@ -137,7 +137,7 @@ def main(args):
     #                data_output + "two_stage_syn_condition_len" + str(args.cut_seq_len) +
     #                "_pred_len" + str(args.pred_seq_len) +
     #                "_trajectory_data.csv")
-    print('Finish Synthetic and Predicted Data Generation')
+    print('Finish Synthetic and Predicted Trajectory')
     print(time.strftime("%Y-%m-%d-%H_%M_%S", time.localtime()))
 
 

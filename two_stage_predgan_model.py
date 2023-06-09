@@ -368,7 +368,7 @@ def predgan(ori_data, pre_syn_data_before, pre_syn_data_before_length, parameter
     else:
         pathlib.Path(save_sup_para_path).mkdir(parents=True, exist_ok=True)
         # 2. Training only with supervised loss
-        print('Start Training with Supervised Loss Only...')
+        print('Start Training with Supervised Loss Only in two stage...')
         for epoch in range(num_epochs):
             loop = tqdm(range(print_iter))
             for _ in loop:

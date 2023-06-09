@@ -341,7 +341,7 @@ def syngan(ori_data, parameters):
     else:
         pathlib.Path(save_sup_pred_para_path).mkdir(parents=True, exist_ok=True)
         # 2. Training with supervised loss and prediction loss
-        print('Start Training Supervisor and Predictor Network Only...')
+        print('Start Training Supervisor and Predictor Network Only in one stage...')
         for epoch in range(num_epochs):
             loop = tqdm(range(print_iter))
             for _ in loop:
@@ -434,7 +434,7 @@ def syngan(ori_data, parameters):
         os.chmod(save_gan_joint_para_path, 0o755)
         saver_joint.save(sess, save_path3)
 
-    print("Start Data Generating")
+    print("Start Initial Trajectory Segments Generating...")
 
     ## Synthetic data generation
     pred_traj_num = len(syn_time_list)
