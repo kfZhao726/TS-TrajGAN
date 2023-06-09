@@ -23,8 +23,6 @@ from data_loading import read_txt_traj_data_loading
 from utils import padding, getmaxlen, formalize_data
 import time
 import pathlib
-import json
-import csv
 
 
 def main(args):
@@ -95,11 +93,11 @@ def main(args):
     predicted_data_m = predgan(two_stage_train_data, to_two_stage_generated_data, generated_data_length, parameters)
 
     print("Data Predicted Successfully")
-    # 下面要结合一阶段已经生成结束的轨迹 和 二阶段成功预测的轨迹
+
     result_traj = []
     result_traj_with_time = []
 
-    # 一阶段的
+    # One Stage
     for single_traj in to_end_generated_data:
         traj = []
         traj_with_time = []
@@ -109,7 +107,7 @@ def main(args):
         result_traj.append(traj)
         result_traj_with_time.append(traj_with_time)
 
-    # 二阶段的
+    # Two Stage
     for single_traj in predicted_data_m:
         traj = []
         traj_with_time = []
@@ -122,11 +120,13 @@ def main(args):
     predicted_data_to_txt_pic = np.array(result_traj)
     predicted_data_with_time_to_txt_pic = np.array(result_traj_with_time)
     max_len, min_len = getmaxlen(predicted_data_to_txt_pic)
-    # 保存不带时间信息的数据
+
+    # save trajectory result without time info
     out_path_txt = data_output + 'formalized_txt_syn' + str(args.cut_seq_len) + '_pred' + str(args.pred_seq_len) + \
                    '_min' + str(min_len) + '_max' + str(max_len) + '.txt'
     formalize_data(predicted_data_to_txt_pic, out_path_txt, is_timeinterval=True, without_time=True)
-    # 保存带时间信息的
+
+    # save trajectory result with time info
     out_path_txt_with_time = data_output + 'formalized_txt_syn' + str(args.cut_seq_len) + '_pred' + str(
         args.pred_seq_len) + \
                              '_min' + str(min_len) + '_max' + str(max_len) + '_with_time.txt'
@@ -152,7 +152,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--out_data_path',
         # default='./4_22_geo_grid6_final/syn_5_pred_4/',
-        default='./5_26_b4_porto20/syn_9_pred_1/',
+        default='./5_26_boundary4_porto20/syn_9_pred_1/',
         type=str)
     parser.add_argument(
         '--cell_num',

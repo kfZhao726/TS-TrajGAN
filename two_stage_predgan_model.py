@@ -25,8 +25,8 @@ def predgan(ori_data, pre_syn_data_before, pre_syn_data_before_length, parameter
 
       Args:
         - ori_data: original trajectory cut data
-        - pre_syn_data_before: previous syn trajectory piece data
-        - pre_syn_data_before_length: previous syn piece traj data's length
+        - pre_syn_data_before: previous syn initial trajectory segments
+        - pre_syn_data_before_length: previous syn initial trajectory's length
         - parameters: predgan network parameters
 
       Returns:
@@ -56,10 +56,10 @@ def predgan(ori_data, pre_syn_data_before, pre_syn_data_before_length, parameter
         """
         assert module_name in ['gru', 'lstm', 'lstmLN']
 
-        # GRU , return new_h, new_h 只输出最后一个时间步的隐藏层
+        # GRU
         if (module_name == 'gru'):
             rnn_cell = tf.nn.rnn_cell.GRUCell(num_units=hidden_dim, activation=tf.nn.tanh, name=name)
-        # LSTM , return new_h, new_state 输出(最后一个时间步的隐藏层,最后一个时间步的输出状态)
+        # LSTM
         elif (module_name == 'lstm'):
             rnn_cell = tf.contrib.rnn.BasicLSTMCell(num_units=hidden_dim, activation=tf.nn.tanh)
         # LSTM Layer Normalization
@@ -98,7 +98,6 @@ def predgan(ori_data, pre_syn_data_before, pre_syn_data_before_length, parameter
     cut_seq_len = parameters['cut_seq_len']
     condi_len = cut_seq_len
     hidden_dim = parameters['hidden_dim']
-    # hidden_dim = 100
     max_traj_len = parameters['max_seq_len']
     out_data_path = parameters['out_data_path']
     boundary = parameters['boundary']
@@ -107,9 +106,7 @@ def predgan(ori_data, pre_syn_data_before, pre_syn_data_before_length, parameter
     # Basic Parameters(trajectory)
     no, seq_len, dim = np.asarray(ori_data).shape
     syn_no, syn_seq_len, syn_dim = np.asarray(pre_syn_data_before).shape
-    # hidden_dim = condi_len * dim
 
-    # 这里要去掉每条轨迹的第一个点（上一个模型生成的 --> 所以第一阶段要生成condition + 1 长度的轨迹）
     first_point_list = list()
     pre_syn_data = list()
     for i in range(len(pre_syn_data_before)):
@@ -145,13 +142,13 @@ def predgan(ori_data, pre_syn_data_before, pre_syn_data_before_length, parameter
     beta = 1
 
     # Input place holders
-    X = tf.placeholder(tf.float32, [None, pred_seq_len, dim], name="myinput_x")  # 每个切片的最后一个点，shape = (?, 1, 3)
+    X = tf.placeholder(tf.float32, [None, pred_seq_len, dim], name="myinput_x")
     C = tf.placeholder(tf.float32, [None, condi_len, dim], name="my_input_c")
     Z = tf.placeholder(tf.float32, [None, pred_seq_len, z_dim], name="myinput_z")
     T = tf.placeholder(tf.int32, [None], name="myinput_t")
 
     def Multi_denes(input, type):
-        input = tf.layers.dense(input, int(hidden_dim * pred_seq_len), activation=tf.nn.relu, name=type + '_dense4')
+        input = tf.layers.dense(input, int(hidden_dim * pred_seq_len), activation=tf.nn.relu, name=type + '_dense_layer')
         return input
 
     def embedder(X, C, T):
@@ -172,7 +169,7 @@ def predgan(ori_data, pre_syn_data_before, pre_syn_data_before_length, parameter
             E_Input = tf.concat([X, C_d], axis=2)
             e_cell = tf.keras.layers.StackedRNNCells([rnn_cell(module_name, hidden_dim, name='e_cell') for _ in range(num_layers)])
             e_outputs, e_last_states = tf.nn.dynamic_rnn(e_cell, E_Input, dtype=tf.float32, sequence_length=T)
-            H = tf.layers.dense(e_outputs, hidden_dim, activation=tf.nn.sigmoid, name='e_out_dense')
+            H = tf.layers.dense(e_outputs, hidden_dim, activation=tf.nn.sigmoid, name='out_dense')
         return H
 
     def recovery(H, C, T):
@@ -253,7 +250,7 @@ def predgan(ori_data, pre_syn_data_before, pre_syn_data_before_length, parameter
             H = Multi_denes(H, 'h')
             input_Out = tf.concat([H, C_d], axis=2)
             d_outputs, d_last_states = tf.nn.dynamic_rnn(d_cell, input_Out, dtype=tf.float32, sequence_length=T)
-            Y_hat = tf.layers.dense(d_outputs, 1, activation=None, name='out_dense4')
+            Y_hat = tf.layers.dense(d_outputs, 1, activation=None, name='out_dense')
         return Y_hat
 
     # embedder & recovery
@@ -293,7 +290,7 @@ def predgan(ori_data, pre_syn_data_before, pre_syn_data_before_length, parameter
 
     G_loss_S = tf.losses.mean_squared_error(H[:, :, :], H_hat_supervise[:, :, :])
 
-    # 2. G_loss: 计算目标点潜码和预测点的MSE距离
+    # 2. G_loss
     G_loss_V = tf.losses.mean_squared_error(X, X_hat)
 
     # 3. Summation
@@ -305,23 +302,19 @@ def predgan(ori_data, pre_syn_data_before, pre_syn_data_before_length, parameter
     E_loss = E_loss0 + 0.1 * G_loss_S
 
     # optimizer
-    # 单独训练
     E0_solver = tf.train.AdamOptimizer().minimize(E_loss0, var_list=e_vars + r_vars)
     GS_solver = tf.train.AdamOptimizer().minimize(G_loss_S, var_list=g_vars + s_vars)
-    # 联合训练
     E_solver = tf.train.AdamOptimizer().minimize(E_loss, var_list=e_vars + r_vars)
-    # learning_rate=0.0005
     D_solver = tf.train.AdamOptimizer().minimize(D_loss, var_list=d_vars)
     G_solver = tf.train.AdamOptimizer().minimize(G_loss, var_list=g_vars + s_vars)
 
     ## predgan training
     os.environ["CUDA_VISIBLE_DEVICES"] = '0'
-    config = tf.ConfigProto()  ##:如果你指定的设备不存在,允许TF自动分配设备
+    config = tf.ConfigProto()
     config.gpu_options.per_process_gpu_memory_fraction = 0.5
-    config.gpu_options.allow_growth = True  ##动态分配内存
+    config.gpu_options.allow_growth = True
     sess = tf.Session(config=config)
     sess.run(tf.global_variables_initializer())
-    # print("*"*50)
 
     saver_en_de = tf.train.Saver(var_list=e_vars + r_vars)
     saver_sup = tf.train.Saver(var_list=g_vars + s_vars)
@@ -347,12 +340,11 @@ def predgan(ori_data, pre_syn_data_before, pre_syn_data_before_length, parameter
     num_epochs = int(iterations / print_iter)
 
     if os.path.exists(save_en_de_para_path + 'checkpoint'):
-        print("加载已有二阶段编解码器模型参数")
+        print("Loading the parameters of the embedder and recovery has already trained in two stage...")
         saver_en_de.restore(sess, save_en_de_para_path + 'en_de_model.ckpt')
     else:
         pathlib.Path(save_en_de_para_path).mkdir(parents=True, exist_ok=True)
-        print("开始训练二阶段编解码器模型...")
-        print('Start Encoding Network Training')
+        print('Start Encoding Network Training in two stage...')
         # 1. Embedding network training(embedder & recovery)
         for epoch in range(num_epochs):
             loop = tqdm(range(print_iter))
@@ -366,18 +358,17 @@ def predgan(ori_data, pre_syn_data_before, pre_syn_data_before_length, parameter
                 losses_only['embedder_loss'].append(np.round(np.sqrt(step_e_loss), 4))
         draw_loss_pic(losses_only['embedder_loss'], save_path + 'two_stage_' + 'embedder_only_loss.png')
         save_path1 = os.path.join(save_en_de_para_path, "en_de_model.ckpt")
-        os.chmod(save_en_de_para_path, 0o755)  # 修改文件夹权限
+        os.chmod(save_en_de_para_path, 0o755)
         saver_en_de.save(sess, save_path1)
         print('Finish embedder & recovery Network Training')
 
     if os.path.exists(save_sup_para_path + 'checkpoint'):
-        print("加载已有二阶段监督器模型参数")
+        print("Loading the parameters of the supervisor has already trained in two stage...")
         saver_sup.restore(sess, save_sup_para_path + 'sup_model.ckpt')
     else:
         pathlib.Path(save_sup_para_path).mkdir(parents=True, exist_ok=True)
-        print("开始训练二阶段监督器模型...")
         # 2. Training only with supervised loss
-        print('Start Training with Supervised Loss Only')
+        print('Start Training with Supervised Loss Only...')
         for epoch in range(num_epochs):
             loop = tqdm(range(print_iter))
             for _ in loop:
@@ -393,18 +384,17 @@ def predgan(ori_data, pre_syn_data_before, pre_syn_data_before_length, parameter
                 losses_only['sup_loss'].append(np.round(np.sqrt(step_g_loss_s), 4))
         draw_loss_pic(losses_only['sup_loss'], save_path + 'two_stage_' + 'sup_only_loss.png')
         save_path2 = os.path.join(save_sup_para_path, "sup_model.ckpt")
-        os.chmod(save_sup_para_path, 0o755)  # 修改文件夹权限
+        os.chmod(save_sup_para_path, 0o755)
         saver_sup.save(sess, save_path2)
         print('Finish Training with Supervised Loss Only')
 
     if os.path.exists(save_gan_joint_para_path + 'checkpoint'):
-        print("加载已有二阶段联合训练模型参数")
+        print("Loading the parameters of joint training model has already trained in two stage...")
         saver_joint.restore(sess, save_gan_joint_para_path + 'joint_model.ckpt')
     else:
         pathlib.Path(save_gan_joint_para_path).mkdir(parents=True, exist_ok=True)
-        print("开始训练二阶段联合训练模型...")
         # 3. Joint Training(5models)
-        print('Start Generator and discriminator Training')
+        print('Start Generator and discriminator Training in two stage...')
         for epoch in range(num_epochs):
             loop = tqdm(range(print_iter))
             for _ in loop:
@@ -450,11 +440,12 @@ def predgan(ori_data, pre_syn_data_before, pre_syn_data_before_length, parameter
         plt.close()
         print('Finish Generator and discriminator Training')
         save_path3 = os.path.join(save_gan_joint_para_path, "joint_model.ckpt")
-        os.chmod(save_gan_joint_para_path, 0o755)  # 修改文件夹权限
+        os.chmod(save_gan_joint_para_path, 0o755)
         saver_joint.save(sess, save_path3)
+
     print('Start Trajectory Predicting...')
 
-    def checkCellIndex(each_coor):  # coor是个1*2数组，boundary是个1*4数组
+    def checkCellIndex(each_coor):
         lat_cell_count = cell_num
         lng_cell_count = cell_num
         if boundary[0] < float(each_coor[0]) < boundary[1] and boundary[2] < float(each_coor[1]) < boundary[3]:
@@ -462,7 +453,6 @@ def predgan(ori_data, pre_syn_data_before, pre_syn_data_before_length, parameter
             width_cell = (boundary[3] - boundary[2]) / lng_cell_count
             cloumnindex = int((float(each_coor[1]) - boundary[2]) / width_cell)
             rowindex = int((boundary[1] - float(each_coor[0])) / height_cell)
-
             return (rowindex, cloumnindex)
         else:
             return False
@@ -520,6 +510,6 @@ def predgan(ori_data, pre_syn_data_before, pre_syn_data_before_length, parameter
         generated_data.append(cut_traj)
 
     print("prediction done")
-    print("已成功生成预测了" + str(len(generated_data)) + "条轨迹")
+    print("Successfully predicted "+str(len(generated_data))+" trajectories.")
 
     return generated_data

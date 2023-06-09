@@ -44,7 +44,7 @@ def read_txt_traj_data_loading(txt_path, begin_seq_len=5, pred_seq_len=1, max_se
             each_traj.append(coor)
 
         metrics_traj.append(each_traj[:max_seq_len])
-        # 一阶段的train set
+        # the train set of one stage
         if len(each_traj) < begin_seq_len:
             each_length = math.nan
             temp_list = each_traj
@@ -54,7 +54,7 @@ def read_txt_traj_data_loading(txt_path, begin_seq_len=5, pred_seq_len=1, max_se
         temp_list.append((each_length, each_length, each_length))
         one_stage_read_begin_traj.append(temp_list)
 
-        # 二阶段的train set
+        # the train set of two stage
         cut_seq_len = begin_seq_len - 1 + pred_seq_len
         each_for_cut = each_traj[1:]
         if len(each_for_cut) < cut_seq_len:
@@ -81,9 +81,8 @@ def read_txt_traj_data_loading(txt_path, begin_seq_len=5, pred_seq_len=1, max_se
 
     print("the first GAN 's train dataset's shape is " + str(np.array(one_stage_data).shape[0]))
 
-
+    # shuffle data
     two_stage_read_cut_traj = two_stage_read_cut_traj[::-1]
-    # 打乱顺序
     idx = np.random.permutation(len(two_stage_read_cut_traj))
     two_stage_data = []
     for i in range(len(two_stage_read_cut_traj)):

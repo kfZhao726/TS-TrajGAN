@@ -16,7 +16,7 @@ import tensorflow.compat.v1 as tf
 
 
 def padding(dataset, max_seq_len):
-    # 用0填充
+    # padding with 0
     padding_d = list()
     padding_element = list()
     for n in range(len(dataset[0][0])):
@@ -30,7 +30,7 @@ def padding(dataset, max_seq_len):
 
 
 def padding_end_point(dataset, max_seq_len):
-    # 用终点填充
+    # padding with end point
     padding_d = list()
     for data in dataset:
         if len(data) <= max_seq_len:
@@ -56,10 +56,9 @@ Returns:
     min_val = np.min(np.min(data, axis=0), axis=0)
     data = data - min_val
     max_val = np.max(np.max(data, axis=0), axis=0)
-    norm_data = data / (max_val + 1e-7)  # 原来是e-7
+    norm_data = data / (max_val + 1e-7)
 
     return norm_data, min_val, max_val
-# f(z) = 1 / (1+e**-z)
 
 def train_test_divide(data_x, data_x_hat, data_t, data_t_hat, train_rate=0.8):
     """Divide train and test data for both original and synthetic data.
@@ -109,10 +108,8 @@ def extract_time(data):
     time = list()
     max_seq_len = 0
     for i in range(len(data)):
-        # 查询每一条seq的长度
         max_seq_len = max(max_seq_len, len(data[i][:]))
         time.append(len(data[i][:]))
-        # time:list返回一个seq长度序列 T = {T1,T2……Tm}
     return time, max_seq_len
 
 
@@ -127,10 +124,10 @@ def rnn_cell(module_name, hidden_dim):
     """
     assert module_name in ['gru', 'lstm', 'lstmLN']
 
-    # GRU , return new_h, new_h 只输出最后一个时间步的隐藏层
+    # GRU
     if (module_name == 'gru'):
         rnn_cell = tf.nn.rnn_cell.GRUCell(num_units=hidden_dim, activation=tf.nn.tanh)
-    # LSTM , return new_h, new_state 输出(最后一个时间步的隐藏层,最后一个时间步的输出状态)
+    # LSTM
     elif (module_name == 'lstm'):
         rnn_cell = tf.contrib.rnn.BasicLSTMCell(num_units=hidden_dim, activation=tf.nn.tanh)
     # LSTM Layer Normalization
@@ -155,53 +152,9 @@ def random_generator(batch_size, z_dim, T_mb, max_seq_len):
     for i in range(batch_size):
         temp = np.zeros([max_seq_len, z_dim])
         temp_Z = np.random.uniform(0., 1, [T_mb[i], z_dim])
-        # 对每个元素添加一个随机的小量
-        # temp_Z += np.random.normal(loc=0.0, scale=0.01, size=[T_mb[i], z_dim])
         temp[:T_mb[i], :] = temp_Z
         Z_mb.append(temp_Z)
     return Z_mb
-
-# def random_generator(batch_size, z_dim, T_mb, max_seq_len):
-#     """Random vector generation.
-#     Args:
-#         - batch_size: size of the random vector
-#         - z_dim: dimension of random vector
-#         - T_mb: time information for the random vector
-#         - max_seq_len: maximum sequence length
-#     Returns:
-#         - Z_mb: generated random vector
-#     """
-#     Z_mb = list()
-#     for i in range(batch_size):
-#         temp = np.zeros([max_seq_len, z_dim])
-#         temp_Z = np.random.normal(loc=0.0, scale=1.0, size=[T_mb[i], z_dim])
-#         # 对每个元素添加一个随机的小量
-#         # temp_Z += np.random.normal(loc=0.0, scale=0.001, size=[T_mb[i], z_dim])
-#         temp[:T_mb[i], :] = temp_Z
-#         Z_mb.append(temp)
-#     return Z_mb
-
-# def random_generator(batch_size, z_dim, T_mb, max_seq_len):
-#     """Random vector generation.
-#
-#     Args:
-#       - batch_size: size of the random vector
-#       - z_dim: dimension of random vector
-#       - T_mb: time information for the random vector
-#       - max_seq_len: maximum sequence length
-#
-#     Returns:
-#       - Z_mb: generated random vector
-#     """
-#     Z_mb = list()
-#     for i in range(batch_size):
-#         temp = np.zeros([max_seq_len, z_dim])
-#         Z_loc = np.random.uniform(low=0., high=1, size=[T_mb[i], 2])
-#         Z_time = np.random.rand(T_mb[i], 1)
-#         temp_Z = np.concatenate((Z_loc, Z_time),axis=1)
-#         temp[:T_mb[i], :] = temp_Z
-#         Z_mb.append(temp_Z)
-#     return Z_mb
 
 
 def batch_generator(data, time, batch_size):
@@ -292,7 +245,7 @@ def write_data2csv(syn_dataset, max_seq_len, column_name, output_path):
 #     return temp + pred_seq_len + 1
 
 
-def getCellIndex(boundary, cell_num, each_coor):  # coor是个1*2数组，boundary是个1*4数组
+def getCellIndex(boundary, cell_num, each_coor):
 
     lat_cell_count = cell_num
     lng_cell_count = cell_num

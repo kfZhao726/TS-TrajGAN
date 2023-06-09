@@ -21,14 +21,14 @@ from sklearn.preprocessing import MaxAbsScaler, StandardScaler, RobustScaler, Mi
 def syngan(ori_data, parameters):
     """syngan function.
 
-        Use original begin trajectory data as training set to generate begin trajectory data
+        Use original initial trajectory segments as training set to generate initial trajectory segments
 
         Args:
-            - ori_data: original begin trajectory data
+            - ori_data: original initial trajectory segments
             - parameters: syngan network parameters
 
         Returns:
-            - generated_data: generated begin trajectory data
+            - generated_data: generated initial trajectory segments
         """
     # Initialization on the Graph
     tf.reset_default_graph()
@@ -38,13 +38,12 @@ def syngan(ori_data, parameters):
         """Mini-batch generator.
 
         Args:
-          - data: begin trajectory data
+          - data: initial trajectory segments
           - time: time information
           - batch_size: the number of samples in each batch
 
         Returns:
-          - X_mb: begin trajectory data in each batch
-          - C_mb: condition data in each batch
+          - X_mb: initial trajectory segments in each batch
           - T_mb: time information in each batch
         """
         no = len(data)
@@ -74,7 +73,6 @@ def syngan(ori_data, parameters):
 
     ori_time_list = np.array(extract_time(ori_data)[0]) - 1
 
-    # 这个地方可能要改一下
     syn_time_list = ori_time_list[:]
 
     data_for_norm = list()
@@ -106,7 +104,6 @@ def syngan(ori_data, parameters):
             pass
         else:
             train_data_for_predictor.append(each_traj)
-    print(train_data_for_predictor[0])
 
     # Input placeholders
     X = tf.placeholder(tf.float32, [None, max_seq_len, dim], name="myinput_x")
@@ -118,7 +115,7 @@ def syngan(ori_data, parameters):
         """Embedding network between original feature space to latent space.
 
         Args:
-          - X: input begin trajectory features
+          - X: input initial trajectory segments features
           - T: input time information
 
         Returns:
@@ -127,7 +124,7 @@ def syngan(ori_data, parameters):
         with tf.variable_scope("embedder", reuse=tf.AUTO_REUSE):
             e_cell = tf.keras.layers.StackedRNNCells([rnn_cell(module_name, hidden_dim) for _ in range(num_layers)])
             e_outputs, e_last_states = tf.nn.dynamic_rnn(e_cell, X, dtype=tf.float32, sequence_length=T)
-            H = tf.layers.dense(e_outputs, hidden_dim, activation=tf.nn.sigmoid, name='dense2')
+            H = tf.layers.dense(e_outputs, hidden_dim, activation=tf.nn.sigmoid, name='dense')
         return H
 
     def recovery(H, T):
@@ -138,17 +135,17 @@ def syngan(ori_data, parameters):
           - T: input time information
 
         Returns:
-          - X_tilde: recovered data
+          - X_tilde: recovered initial trajectory segments
         """
         with tf.variable_scope("recovery", reuse=tf.AUTO_REUSE):
             de_cell = tf.keras.layers.StackedRNNCells(
                 [rnn_cell(module_name, hidden_dim) for _ in range(num_layers)])  # module_name = 'gru'
             de_outputs, de_last_states = tf.nn.dynamic_rnn(de_cell, H, dtype=tf.float32, sequence_length=T)
-            X_tilde = tf.layers.dense(de_outputs, dim, activation=tf.nn.sigmoid, name='dense2')
+            X_tilde = tf.layers.dense(de_outputs, dim, activation=tf.nn.sigmoid, name='dense')
         return X_tilde
 
     def predictor(H, T):
-        """Predict the begin trajectory's length from latent space.
+        """Predict the initial trajectory's length from latent space.
 
         Args:
           - H: latent representation
@@ -161,11 +158,11 @@ def syngan(ori_data, parameters):
             e_cell = tf.keras.layers.StackedRNNCells([rnn_cell(module_name, hidden_dim) for _ in range(num_layers)])
             e_outputs, e_last_states = tf.nn.dynamic_rnn(e_cell, H, dtype=tf.float32, sequence_length=T)
             pooled = tf.reduce_mean(e_outputs, axis=1)
-            Pred_length = tf.layers.dense(pooled, 1, activation=tf.nn.sigmoid, name='out_dense')
+            Pred_length = tf.layers.dense(pooled, 1, activation=tf.nn.sigmoid, name='dense')
         return Pred_length
 
     def generator(Z, T):
-        """Generator function: Generate begin trajectory data in latent space.
+        """Generator function: Generate initial trajectory segments in latent space.
 
         Args:
           - Z: random variables
@@ -177,7 +174,7 @@ def syngan(ori_data, parameters):
         with tf.variable_scope("generator", reuse=tf.AUTO_REUSE):
             e_cell = tf.keras.layers.StackedRNNCells([rnn_cell(module_name, hidden_dim) for _ in range(num_layers)])
             e_outputs, e_last_states = tf.nn.dynamic_rnn(e_cell, Z, dtype=tf.float32, sequence_length=T)
-            E = tf.layers.dense(e_outputs, hidden_dim, activation=tf.nn.sigmoid, name='dense2')
+            E = tf.layers.dense(e_outputs, hidden_dim, activation=tf.nn.sigmoid, name='dense')
         return E
 
     def supervisor(H, T):
@@ -193,25 +190,23 @@ def syngan(ori_data, parameters):
         with tf.variable_scope("supervisor", reuse=tf.AUTO_REUSE):
             e_cell = tf.keras.layers.StackedRNNCells([rnn_cell(module_name, hidden_dim) for _ in range(num_layers - 1)])
             e_outputs, e_last_states = tf.nn.dynamic_rnn(e_cell, H, dtype=tf.float32, sequence_length=T)
-            S = tf.layers.dense(e_outputs, hidden_dim, activation=tf.nn.sigmoid, name='dense2')
+            S = tf.layers.dense(e_outputs, hidden_dim, activation=tf.nn.sigmoid, name='dense')
         return S
 
     def discriminator(H, T):
-        """Discriminate the original and synthetic begin trajectory data.
+        """Discriminate the original and synthetic initial trajectory segments.
 
         Args:
           - H: latent representation
           - T: input time information
 
         Returns:
-          - Y_hat: classification results between original and synthetic begin trajectory
+          - Y_hat: classification results between original and synthetic initial trajectory segments
         """
         with tf.variable_scope("discriminator", reuse=tf.AUTO_REUSE):
             d_cell = tf.keras.layers.StackedRNNCells([rnn_cell(module_name, hidden_dim) for _ in range(num_layers)])
-            # H = Multi_denes(H, 'h')
             d_outputs, d_last_states = tf.nn.dynamic_rnn(d_cell, H, dtype=tf.float32, sequence_length=T)
-            # output = tf.layers.dense(d_outputs, int(hidden_dim / 4), activation=tf.nn.leaky_relu, name='out_dense1')
-            Y_hat = tf.layers.dense(d_outputs, 1, activation=None, name='dis_dense')
+            Y_hat = tf.layers.dense(d_outputs, 1, activation=None, name='dense')
         return Y_hat
 
     # embedder & recovery
@@ -253,8 +248,6 @@ def syngan(ori_data, parameters):
     D_loss_fake_e = tf.losses.sigmoid_cross_entropy(tf.zeros_like(Y_fake_e), Y_fake_e)
     D_loss_adv = D_loss_real + D_loss_fake + gamma * D_loss_fake_e
 
-    # D_loss_pred = tf.losses.mean_squared_error(pred_length, Length)
-
     D_loss = D_loss_adv
 
     # Generator loss
@@ -280,22 +273,18 @@ def syngan(ori_data, parameters):
     E_loss = E_loss0 + 0.1 * G_loss_S
 
     # optimizer
-    # 单独训练
     E0_solver = tf.train.AdamOptimizer().minimize(E_loss0, var_list=e_vars + r_vars)
     GS_solver = tf.train.AdamOptimizer().minimize(G_loss_S, var_list=g_vars + s_vars)
     Pred_solver = tf.train.AdamOptimizer().minimize(Pred_loss, var_list=pred_vars)
-    # 联合训练
     E_solver = tf.train.AdamOptimizer().minimize(E_loss, var_list=e_vars + r_vars)
     D_solver = tf.train.AdamOptimizer().minimize(D_loss, var_list=d_vars)
     G_solver = tf.train.AdamOptimizer().minimize(G_loss, var_list=g_vars + s_vars)
 
     ## syngan training
-    # os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    # os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # 这里是gpu的序号，指定使用的gpu对象
     os.environ["CUDA_VISIBLE_DEVICES"] = '0'
-    config = tf.ConfigProto()  ##:如果你指定的设备不存在,允许TF自动分配设备
+    config = tf.ConfigProto()
     config.gpu_options.per_process_gpu_memory_fraction = 0.5
-    config.gpu_options.allow_growth = True  ##动态分配内存
+    config.gpu_options.allow_growth = True
     sess = tf.Session(config=config)
     sess.run(tf.global_variables_initializer())
 
@@ -324,12 +313,11 @@ def syngan(ori_data, parameters):
     num_epochs = int(iterations / print_iter)
 
     if os.path.exists(save_en_de_para_path + 'checkpoint'):
-        print("加载已有一阶段编解码器模型参数")
+        print("Loading the parameters of the embedder and recovery has already trained in one stage...")
         saver_en_de.restore(sess, save_en_de_para_path + 'en_de_model.ckpt')
     else:
         pathlib.Path(save_en_de_para_path).mkdir(parents=True, exist_ok=True)
-        print("开始训练一阶段编解码器模型...")
-        print('Start Encoding Network Training')
+        print('Start Embedding Network Training in one stage...')
         # 1. Embedding network training(embedder & recovery)
         for epoch in range(num_epochs):
             loop = tqdm(range(print_iter))
@@ -343,18 +331,17 @@ def syngan(ori_data, parameters):
                 losses_only['embedder_loss'].append(np.round(np.sqrt(step_e_loss), 4))
         draw_loss_pic(losses_only['embedder_loss'], save_path + 'one_stage_' + 'embedder_only_loss.png')
         save_path1 = os.path.join(save_en_de_para_path, "en_de_model.ckpt")
-        os.chmod(save_en_de_para_path, 0o755)  # 修改文件夹权限
+        os.chmod(save_en_de_para_path, 0o755)
         saver_en_de.save(sess, save_path1)
         print('Finish embedder & recovery Network Training')
 
     if os.path.exists(save_sup_pred_para_path + 'checkpoint'):
-        print("加载已有一阶段监督器和预测器模型参数")
+        print("Loading the parameters of the supervisor and predictor has already trained in one stage...")
         saver_sup.restore(sess, save_sup_pred_para_path + 'sup_model.ckpt')
     else:
         pathlib.Path(save_sup_pred_para_path).mkdir(parents=True, exist_ok=True)
-        print("开始训练一阶段监督器和预测器模型...")
         # 2. Training with supervised loss and prediction loss
-        print('Start Training Supervisor and Predictor Network Only')
+        print('Start Training Supervisor and Predictor Network Only...')
         for epoch in range(num_epochs):
             loop = tqdm(range(print_iter))
             for _ in loop:
@@ -380,18 +367,17 @@ def syngan(ori_data, parameters):
         draw_loss_pic(losses_only['sup_loss'], save_path + 'one_stage_' + 'sup_only_loss.png')
         draw_loss_pic(losses_only['pred_loss'], save_path + 'one_stage_' + 'pred_only_loss.png')
         save_path2 = os.path.join(save_sup_pred_para_path, "sup_model.ckpt")
-        os.chmod(save_sup_pred_para_path, 0o755)  # 修改文件夹权限
+        os.chmod(save_sup_pred_para_path, 0o755)
         saver_sup.save(sess, save_path2)
         print('Finish Training Supervisor and Predictor Network Only')
 
     if os.path.exists(save_gan_joint_para_path + 'checkpoint'):
-        print("加载已有一阶段联合训练模型参数")
+        print("Loading the parameters of joint training model has already trained in one stage...")
         saver_joint.restore(sess, save_gan_joint_para_path + 'joint_model.ckpt')
     else:
         pathlib.Path(save_gan_joint_para_path).mkdir(parents=True, exist_ok=True)
-        print("开始训练一阶段联合训练模型...")
-        # 3. Joint Training(6models)
-        print('Start Joint Training')
+        # 3. Joint Training(5models)
+        print('Start Joint Training in one stage...')
         for epoch in range(num_epochs):
             loop = tqdm(range(print_iter))
             for _ in loop:
@@ -445,18 +431,17 @@ def syngan(ori_data, parameters):
         plt.close()
         print('Finish Generator and discriminator Training')
         save_path3 = os.path.join(save_gan_joint_para_path, "joint_model.ckpt")
-        os.chmod(save_gan_joint_para_path, 0o755)  # 修改文件夹权限
+        os.chmod(save_gan_joint_para_path, 0o755)
         saver_joint.save(sess, save_path3)
-    print("Start Data Generating")
-    ## Synthetic data generation
 
+    print("Start Data Generating")
+
+    ## Synthetic data generation
     pred_traj_num = len(syn_time_list)
     Z_mb = random_generator(pred_traj_num, z_dim, syn_time_list, max_seq_len)
     generated_data_curr = sess.run(X_hat, feed_dict={Z: padding(Z_mb, max_seq_len), T: syn_time_list})
 
-    # 分为两种数据：一种是到达终点的轨迹，直接送出模型
     to_end_traj_data = list()
-    # 第二种是生成初始段但没到终点了，送入第二个模型
     to_two_stage_traj_data = list()
     to_two_stage_traj_length = list()
 
@@ -468,7 +453,8 @@ def syngan(ori_data, parameters):
         else:
             pred_length_curr = sess.run(pred_length, feed_dict={X: np.array([each_gen]), T: np.array([max_seq_len])})
             pred_length_res = \
-            np.squeeze(stand_scaler_length.inverse_transform([np.stack([np.squeeze(pred_length_curr)] * 3, axis=0)]))[0]
+                np.squeeze(
+                    stand_scaler_length.inverse_transform([np.stack([np.squeeze(pred_length_curr)] * 3, axis=0)]))[0]
             if math.floor(pred_length_res) < max_seq_len + 1:
                 to_end_traj_data.append(each_gen_inverse)
             else:
